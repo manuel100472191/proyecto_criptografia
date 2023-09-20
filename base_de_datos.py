@@ -18,6 +18,15 @@ class Db:
     def add_user(self, user_name, password):
         self.cursor.execute("INSERT INTO users VALUES (?, ?);", (user_name, password))
 
+    def validate_user(self, user_name, password):
+        rows = list(self.cursor.execute("SELECT user_id, password FROM users WHERE user_id = ?;", (user_name,)))
+        print(rows)
+        if len(rows) != 1:
+            raise Exception
+        if rows[0][1] == password:
+            return True
+        return False
+
     def populate_db(self):
         self.cursor.execute("INSERT INTO users VALUES ('delamola19', 'contraseña');")
         self.cursor.execute("INSERT INTO users VALUES ('user1', 'user1_pass');")

@@ -6,6 +6,8 @@ base_de_datos = Db()
 base_de_datos.create_db()
 base_de_datos.populate_db()
 base_de_datos.view_data()
+print(base_de_datos.validate_user("delamola19", "contraseña"))
+print(base_de_datos.validate_user("dalamola19", "kdsjfa"))
 
 # connection = sqlite3.connect("base_de_datos.db")
 # print(connection.total_changes)
