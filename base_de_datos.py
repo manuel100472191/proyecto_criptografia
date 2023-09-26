@@ -32,23 +32,53 @@ class Db:
         self.cursor.execute("DROP TABLE users;")
         self.cursor.execute("DROP TABLE messages;")
 
-    def add_user(self, telephone, password, name, surname):
-        self.cursor.execute("INSERT INTO users VALUES (?, ?, ?, ?);", (telephone, password, name, surname))
+    def add_user(self, telephone, password, name, surname, email):
+        self.cursor.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?);", (telephone, password, name, surname, email))
+        self.connection.commit()
 
     def validate_user(self, telephone, password):
-        rows = list(self.cursor.execute("SELECT telephone_number, password FROM users WHERE telephone = ?;", (telephone,)))
-        print(rows)
+        rows = list(self.cursor.execute("SELECT telephone_number, password FROM users WHERE telephone_number = ?;"
+                                        , (telephone,)))
         if len(rows) != 1:
             return False
         if rows[0][1] == password:
             return True
+        return False
 
-    def populate_db(self):
-        self.cursor.execute("INSERT INTO users VALUES ('delamola19', 'contraseña');")
-        self.cursor.execute("INSERT INTO users VALUES ('user1', 'user1_pass');")
+    def find_user(self, telephone):
+        rows = list(self.cursor.execute("SELECT * FROM users WHERE telephone_number = ?;", (telephone,)))
+        return rows[0]
+
+    def find_messages_sent(self, telephone):
+        rows = list(self.cursor.execute("SELECT * FROM messages WHERE sender = ?", (telephone,)))
+        return rows
+
+    def find_messages_received(self, telephone):
+        rows = list(self.cursor.execute("SELECT * FROM messages WHERE receiver = ?", (telephone,)))
+        return rows
+
+    def add_message(self, sender, receiver, content):
+        self.cursor.execute("INSERT INTO messages(sender, receiver, content) VALUES (?, ?, ?);"
+                            , (sender, receiver, content))
         self.connection.commit()
+
+    def populate_users(self):
+        self.add_user('111111111', 'password', 'user1', 'user1', '1@hola.es')
+        self.add_user('222222222', 'password', 'user2', 'user2', '2@hola.es')
+        self.add_user('333333333', 'password', 'user3', 'user3', '3@hola.es')
+        self.add_user('444444444', 'password', 'user4', 'user4', '4@hola.es')
+
+    def populate_messages(self):
+        self.add_message('111111111', '222222222', 'Hola')
+        self.add_message('222222222', '333333333', '¿Que tal?')
+        self.add_message('444444444', '111111111', 'Buenos dias')
 
     def view_data(self):
         rows = self.cursor.execute("SELECT * from users").fetchall()
         for row in rows:
-            print(f"user: {row[0]} ---- password: {row[1]}")
+            print(f"phone-number: {row[0]} ---- password: {row[1]} ----- name: {row[2]} ----- surname: {row[3]} ----"
+                  f"email: {row[4]}")
+        rows = self.cursor.execute("SELECT * FROM messages").fetchall()
+        for row in rows:
+            print(f"id: {row[0]} ---- sender: {row[1]} ---- receiver {row[2]} ---- content: {row[3]} "
+                  f"---- timestamp: {row[4]}")
