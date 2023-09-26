@@ -1,10 +1,12 @@
 from base_de_datos import Db
-import sys
+from attributes import Attributes
+import os
 
 
 class App:
     def __init__(self):
         self.__db = Db()
+        self.__attributes = Attributes()
         self.__current_user = None
 
     def run(self):
@@ -13,6 +15,7 @@ class App:
 
     def initial_screen(self):
         while True:
+            os.system('clear')
             print("¿Que quieres hacer?\n1) Iniciar sesión\n2) Registrárse")
             result = input()
             if result not in ('1', '2'):
@@ -27,6 +30,7 @@ class App:
 
     def main_menu(self):
         while True:
+            os.system('clear')
             print("¿Que quieres hacer?\n1) Ver mi info\n2) Ver mensajes recibidos"
                   "\n3) Ver mensajes enviados\n4) Enviar mensaje\n5) Cerrar")
             result = input()
@@ -48,6 +52,7 @@ class App:
                 break
 
     def log_in(self):
+        os.system('clear')
         phone_number = input("phone-number: ")
         password = input("password: ")
         if self.__db.validate_user(phone_number, password):
@@ -56,32 +61,38 @@ class App:
         return False
 
     def register(self):
+        os.system('clear')
         phone_number = input("phone-number: ")
         password = input("password: ")
         name = input("name: ")
         surname = input("surname: ")
         email = input("email: ")
+
         self.__db.add_user(phone_number, password, name, surname, email)
         self.__current_user = phone_number
 
     def show_my_info(self):
+        os.system('clear')
         info = self.__db.find_user(self.__current_user)
         print(f"Phone-number: {info[0]}\nName: {info[2]}\nSurname: {info[3]}\nEmail: {info[4]}")
         input("Pulse cualquier letra para volver")
 
     def show_messages_sent(self):
+        os.system('clear')
         info = self.__db.find_messages_sent(self.__current_user)
         for row in info:
             print(f"Sent to {row[2]} at {row[4]}:\n{row[3]}")
         input("Pulse cualquier letra para volver")
 
     def show_messages_received(self):
+        os.system('clear')
         info = self.__db.find_messages_received(self.__current_user)
         for row in info:
             print(f"Sent by {row[1]} at {row[4]}:\n{row[3]}")
         input("Pulse cualquier letra para volver")
 
     def send_message(self):
+        os.system('clear')
         receiver = input("Destinatario: ")
         content = input("Contenido: ")
         self.__db.add_message(self.__current_user, receiver, content)
