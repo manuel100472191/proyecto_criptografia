@@ -8,31 +8,47 @@ class Db:
         self.cursor = self.connection.cursor()
 
     def create_db(self):
-        self.cursor.execute("DROP TABLE users;")
         self.cursor.execute(""
                             "CREATE TABLE users ("
-                            "user_id VARCHAR2(100) PRIMARY KEY,"
-                            "password VARCHAR2(255) NOT NULL"
+                            "telephone_number CHAR(9) PRIMARY KEY,"
+                            "password VARCHAR2(255) NOT NULL,"
+                            "name VARCHAR2(50) NOT NULL,"
+                            "surname VARCHAR2(50) NOT NULL,"
+                            "email VARCHAR2(100)"
                             ");")
 
-    def add_user(self, user_name, password):
-        self.cursor.execute("INSERT INTO users VALUES (?, ?);", (user_name, password))
+        self.cursor.execute(""
+                            "CREATE TABLE messages ("
+                            "id INTEGER PRIMARY KEY,"
+                            "sender CHAR(9) NOT NULL,"
+                            "receiver CHAR(9) NOT NULL,"
+                            "content VARCHAR2(512) NOT NULL,"
+                            "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                            "CONSTRAINT FK_SENDER FOREIGN KEY(sender) REFERENCES users,"
+                            "CONSTRAINT FK_RECEIVER FOREIGN KEY(receiver) REFERENCES users"
+                            ");")
 
-    def validate_user(self, user_name, password):
-        rows = list(self.cursor.execute("SELECT user_id, password FROM users WHERE user_id = ?;", (user_name,)))
+    def reset_db(self):
+        self.cursor.execute("DROP TABLE users;")
+        self.cursor.execute("DROP TABLE messages;")
+
+    def add_user(self, telephone, password, name, surname):
+        self.cursor.execute("INSERT INTO users VALUES (?, ?, ?, ?);", (telephone, password, name, surname))
+
+    def validate_user(self, telephone, password):
+        rows = list(self.cursor.execute("SELECT telephone_number, password FROM users WHERE telephone = ?;", (telephone,)))
         print(rows)
         if len(rows) != 1:
-            raise Exception
+            return False
         if rows[0][1] == password:
             return True
-        return False
 
     def populate_db(self):
         self.cursor.execute("INSERT INTO users VALUES ('delamola19', 'contraseña');")
         self.cursor.execute("INSERT INTO users VALUES ('user1', 'user1_pass');")
+        self.connection.commit()
 
     def view_data(self):
         rows = self.cursor.execute("SELECT * from users").fetchall()
-        print(rows)
         for row in rows:
             print(f"user: {row[0]} ---- password: {row[1]}")

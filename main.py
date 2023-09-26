@@ -3,6 +3,7 @@ from base_de_datos import Db
 
 base_de_datos = Db()
 
+base_de_datos.reset_db()
 base_de_datos.create_db()
 base_de_datos.populate_db()
 base_de_datos.view_data()
