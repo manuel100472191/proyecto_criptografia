@@ -9,6 +9,23 @@ class App:
 
     def run(self):
         self.initial_screen()
+        self.main_menu()
+
+    def initial_screen(self):
+        while True:
+            print("¿Que quieres hacer?\n1) Iniciar sesión\n2) Registrárse")
+            result = input()
+            if result not in ('1', '2'):
+                continue
+            if result == '1':
+                if self.log_in():
+                    break
+                continue
+            if result == '2':
+                self.register()
+                break
+
+    def main_menu(self):
         while True:
             print("¿Que quieres hacer?\n1) Ver mi info\n2) Ver mensajes recibidos"
                   "\n3) Ver mensajes enviados\n4) Enviar mensaje\n5) Cerrar")
@@ -29,21 +46,6 @@ class App:
                 continue
             if result == '5':
                 break
-
-    def initial_screen(self):
-        while True:
-            print("¿Que quieres hacer?\n1) Iniciar sesión\n2) Registrárse")
-            result = input()
-            if result not in ('1', '2'):
-                continue
-            if result == '1':
-                if self.log_in():
-                    break
-                continue
-            if result == '2':
-                self.register()
-                break
-
 
     def log_in(self):
         phone_number = input("phone-number: ")
