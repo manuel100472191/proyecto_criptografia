@@ -1,4 +1,5 @@
 import sqlite3
+from cryptobro import Crypto_bro
 
 
 class Db:
@@ -6,15 +7,23 @@ class Db:
         self.db_name = "base_de_datos.db"
         self.connection = sqlite3.connect(self.db_name)
         self.cursor = self.connection.cursor()
+        self.crypto = Crypto_bro()
+
+    def reset_db(self):
+        self.delete_db()
+        self.create_db()
+        self.populate_users()
+        self.populate_messages()
 
     def create_db(self):
         self.cursor.execute(""
                             "CREATE TABLE users ("
                             "telephone_number CHAR(9) PRIMARY KEY,"
-                            "password VARCHAR2(255) NOT NULL,"
+                            "password_token CHAR(349) NOT NULL,"
                             "name VARCHAR2(50) NOT NULL,"
                             "surname VARCHAR2(50) NOT NULL,"
-                            "email VARCHAR2(100)"
+                            "email VARCHAR2(100),"
+                            "salt CHAR(25)"
                             ");")
 
         self.cursor.execute(""
@@ -28,20 +37,23 @@ class Db:
                             "CONSTRAINT FK_RECEIVER FOREIGN KEY(receiver) REFERENCES users"
                             ");")
 
-    def reset_db(self):
+    def delete_db(self):
         self.cursor.execute("DROP TABLE users;")
         self.cursor.execute("DROP TABLE messages;")
 
     def add_user(self, telephone, password, name, surname, email):
-        self.cursor.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?);", (telephone, password, name, surname, email))
+        salt, password_token = self.crypto.create_password(password)
+        self.cursor.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?);",
+                            (telephone, password_token, name, surname, email, salt))
         self.connection.commit()
 
     def validate_user(self, telephone, password):
-        rows = list(self.cursor.execute("SELECT telephone_number, password FROM users WHERE telephone_number = ?;"
+        rows = list(self.cursor.execute("SELECT telephone_number, password_token, salt "
+                                        "FROM users WHERE telephone_number = ?;"
                                         , (telephone,)))
         if len(rows) != 1:
             return False
-        if rows[0][1] == password:
+        if self.crypto.verify_password(password, rows[0][2], rows[0][1]):
             return True
         return False
 
@@ -76,8 +88,8 @@ class Db:
     def view_data(self):
         rows = self.cursor.execute("SELECT * from users").fetchall()
         for row in rows:
-            print(f"phone-number: {row[0]} ---- password: {row[1]} ----- name: {row[2]} ----- surname: {row[3]} ----"
-                  f"email: {row[4]}")
+            print(f"phone-number: {row[0]}  ----- name: {row[2]} ----- surname: {row[3]} ----"
+                  f"email: {row[4]} ---- salt: {row[5]}\b ---- password: \n{row[1]}")
         rows = self.cursor.execute("SELECT * FROM messages").fetchall()
         for row in rows:
             print(f"id: {row[0]} ---- sender: {row[1]} ---- receiver {row[2]} ---- content: {row[3]} "
