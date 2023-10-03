@@ -8,6 +8,7 @@ class Db:
         self.db_name = "base_de_datos.db"
         self.connection = sqlite3.connect(self.db_name)
         self.cursor = self.connection.cursor()
+        self.cursor.execute("PRAGMA foreign_keys = 1")
         self.crypto = Crypto_bro()
 
     def reset_db(self):
@@ -36,8 +37,8 @@ class Db:
                             "receiver CHAR(9) NOT NULL,"
                             "content VARCHAR2(512) NOT NULL,"
                             "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,"
-                            "CONSTRAINT FK_SENDER FOREIGN KEY(sender) REFERENCES users,"
-                            "CONSTRAINT FK_RECEIVER FOREIGN KEY(receiver) REFERENCES users"
+                            "FOREIGN KEY(sender) REFERENCES users(telephone_number),"
+                            "FOREIGN KEY(receiver) REFERENCES users(telephone_number)"
                             ");")
 
     def delete_db(self):
@@ -98,5 +99,5 @@ class Db:
                   f"email: {row[4]} ---- salt: {row[5]}\b ---- password: \n{row[1]}")
         rows = self.cursor.execute("SELECT * FROM messages").fetchall()
         for row in rows:
-            print(f"id: {row[0]} ---- sender: {row[1]} ---- receiver {row[2]} ---- content: {row[3]} "
+            print(f"id: {row[0]} ---- sender: {row[1]} ---- receiver: {row[2]} ---- content: {row[3]} "
                   f"---- timestamp: {row[4]}")
