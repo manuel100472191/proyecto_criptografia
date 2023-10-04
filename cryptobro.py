@@ -2,6 +2,8 @@ import os
 
 import cryptography.exceptions
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
 
 
@@ -41,6 +43,31 @@ class Crypto_bro:
         except cryptography.exceptions.InvalidKey:
             return False
         return True
+
+    @staticmethod
+    def first_derive_key_from_password(password: str):
+        salt = os.urandom(16)
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=480000,
+        )
+        key = kdf.derive(bytes(password, encoding="utf8"))
+        return base64.encodebytes(salt).decode("utf8"), base64.encodebytes(key).decode("utf8")
+
+    @staticmethod
+    def derive_key_from_password(salt, password):
+        salt = base64.decodebytes(bytes(salt, encoding='utf8'))
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=480000,
+        )
+        key = kdf.derive(bytes(password, encoding="utf8"))
+        return base64.encodebytes(key).decode("utf8")
+
 
 
 

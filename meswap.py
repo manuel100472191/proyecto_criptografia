@@ -3,14 +3,16 @@ import tkinter as tk
 from tkinter import ttk
 from base_de_datos import Db
 
-class Interface:
+
+class MeSwap:
     def __init__(self):
         # Create the frame where the interface is going to be
         self.__db = Db()
         self.__current_user = None
+        self.__key = None
 
         self.root = tk.Tk()
-        self.root.title('Messages')
+        self.root.title('MeSwap')
         self.root.resizable(width=False, height=True)
 
         style = ttk.Style()
@@ -113,22 +115,31 @@ class Interface:
         self.show_page("info")
 
     def add_messages_sent_frame(self):
-        info = self.__db.find_messages_sent(self.__current_user)
-        sent_frame = ttk.Frame(self.root, padding=10)
-        self.pages["sent"] = sent_frame
-        for row in info:
-            ttk.Label(sent_frame, text=f"Sent to {row[2]} at {row[4]}:\n{row[3]}").pack(pady=10)
-        ttk.Button(sent_frame, text="Back", command=lambda: self.show_page("main")).pack()
-        self.show_page("sent")
+        try:
+            frame = self.pages["sent"]
+            self.show_page("sent")
+        except KeyError:
+            info = self.__db.find_messages_sent(self.__current_user)
+            sent_frame = ttk.Frame(self.root, padding=10)
+            self.pages["sent"] = sent_frame
+            for row in info:
+                ttk.Label(sent_frame, text=f"Sent to {row[2]} at {row[4]}:\n{row[3]}").pack(pady=10)
+            ttk.Button(sent_frame, text="Back", command=lambda: self.show_page("main")).pack()
+            self.show_page("sent")
 
     def add_messages_received_frame(self):
-        info = self.__db.find_messages_received(self.__current_user)
-        received_frame = ttk.Frame(self.root, padding=10)
-        self.pages["received"] = received_frame
-        for row in info:
-            ttk.Label(received_frame, text=f"Sent by {row[1]} at {row[4]}:\n{row[3]}").pack(pady=10)
-        ttk.Button(received_frame, text="Back", command=lambda: self.show_page("main")).pack()
-        self.show_page("received")
+        try:
+            frame = self.pages["received"]
+            self.show_page("received")
+        except KeyError:
+            info = self.__db.find_messages_received(self.__current_user)
+            received_frame = ttk.Frame(self.root, padding=10)
+            self.pages["received"] = received_frame
+            for row in info:
+                ttk.Label(received_frame, text=f"Sent by {row[1]} at {row[4]}:\n{row[3]}").pack(pady=10)
+            ttk.Button(received_frame, text="Back", command=lambda: self.show_page("main")).pack()
+            ttk.Button(received_frame, text="Update", command=self.add_messages_received_frame).pack()
+            self.show_page("received")
 
     def add_send_message_frame(self, frame):
         ttk.Label(frame, text="To:").grid(row=0, column=0, pady=0)
@@ -182,6 +193,3 @@ class Interface:
             self.email_entry.delete(0, tk.END)
 
 
-
-if __name__ == "__main__":
-    interface = Interface()

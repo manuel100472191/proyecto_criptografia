@@ -1,7 +1,3 @@
-from app import App
-from interface import Interface
+from meswap import MeSwap
 
-my_app = Interface()
-
-# my_app = App()
-# my_app.run()
+my_meswap = MeSwap()
