@@ -24,10 +24,14 @@ class Db:
                             "CREATE TABLE users ("
                             "telephone_number CHAR(9) PRIMARY KEY,"
                             "password_token CHAR(349) NOT NULL,"
-                            "name VARCHAR2(50) NOT NULL,"
-                            "surname VARCHAR2(50) NOT NULL,"
+                            "name VARCHAR2(100) NOT NULL,"
+                            "surname VARCHAR2(100) NOT NULL,"
                             "email VARCHAR2(100),"
-                            "salt CHAR(25)"
+                            "password_salt CHAR(25),"
+                            "key_salt CHAR(25),"
+                            "name_nonce CHAR(17),"
+                            "surname_nonce CHAR(17),"
+                            "email_nonce CHAR(17)"
                             ");")
 
         self.cursor.execute(""
@@ -43,40 +47,53 @@ class Db:
 
     def delete_db(self):
         """ Deletes the tables from teh database """
-        self.cursor.execute("DROP TABLE users;")
         self.cursor.execute("DROP TABLE messages;")
+        self.cursor.execute("DROP TABLE users;")
 
     def add_user(self, telephone, password, name, surname, email):
         """ Adds a user to the database given the correct data"""
         # Generates the salt and the password token for the user
-        salt, password_token = self.crypto.create_password(password)
+        password_salt, password_token = self.crypto.create_password(password)
+        # Generates the key_salt and the key for the user to encrypt its data
+        key_salt, key = self.crypto.first_derive_key_from_password(password)
+        # Encrypts the data and generates an once for each field
+        name_nonce, name = self.crypto.encrypt_my_data(key, name)
+        surname_nonce, surname = self.crypto.encrypt_my_data(key, surname)
+        email_nonce, email = self.crypto.encrypt_my_data(key, email)
         # Stores the data into the database
-        self.cursor.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?);",
-                            (telephone, password_token, name, surname, email, salt))
+        self.cursor.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+                            (telephone, password_token, name, surname, email,
+                             password_salt, key_salt, name_nonce, surname_nonce, email_nonce))
         self.connection.commit()
+        return key
 
     def validate_user(self, telephone, password):
         # Validates the log-in information of a user
-        rows = list(self.cursor.execute("SELECT telephone_number, password_token, salt "
+        rows = list(self.cursor.execute("SELECT telephone_number, password_token, password_salt, key_salt "
                                         "FROM users WHERE telephone_number = ?;"
                                         , (telephone,)))
+        # Verify that the password is the correct one and generates the key for the decryption
         if self.crypto.verify_password(password, rows[0][2], rows[0][1]):
-            return True
+            return self.crypto.derive_key_from_password(rows[0][3], password)
         return False
 
     def find_user(self, telephone):
+        """ Returns all the information from an user given its phone_number"""
         rows = list(self.cursor.execute("SELECT * FROM users WHERE telephone_number = ?;", (telephone,)))
         return rows[0]
 
     def find_messages_sent(self, telephone):
+        """ Find the messages that a phone a number has sent"""
         rows = list(self.cursor.execute("SELECT * FROM messages WHERE sender = ?", (telephone,)))
         return rows
 
     def find_messages_received(self, telephone):
+        """ Finds the messages that a phone number has received """
         rows = list(self.cursor.execute("SELECT * FROM messages WHERE receiver = ?", (telephone,)))
         return rows
 
     def add_message(self, sender, receiver, content):
+        """ Adds a message to the database """
         self.cursor.execute("INSERT INTO messages(sender, receiver, content) VALUES (?, ?, ?);"
                             , (sender, receiver, content))
         self.connection.commit()
@@ -95,8 +112,10 @@ class Db:
     def view_data(self):
         rows = self.cursor.execute("SELECT * from users").fetchall()
         for row in rows:
-            print(f"phone-number: {row[0]}  ----- name: {row[2]} ----- surname: {row[3]} ----"
-                  f"email: {row[4]} ---- salt: {row[5]}\b ---- password: \n{row[1]}")
+            print(f"phone-number: {row[0]}\n----- name: {row[2]}---- surname: {row[3]}----"
+                  f"email: {row[4]}---- password_salt: {row[5]}---- password: \n{row[1]}"
+                  f"---- key_salt: {row[6]}---- name_nonce: {row[7]}---- surname_nonce: {row[8]}"
+                  f"---- email_nonce: {row[9]}")
         rows = self.cursor.execute("SELECT * FROM messages").fetchall()
         for row in rows:
             print(f"id: {row[0]} ---- sender: {row[1]} ---- receiver: {row[2]} ---- content: {row[3]} "

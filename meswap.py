@@ -2,6 +2,7 @@ import sqlite3
 import tkinter as tk
 from tkinter import ttk
 from base_de_datos import Db
+from cryptobro import Crypto_bro
 
 
 class MeSwap:
@@ -10,6 +11,7 @@ class MeSwap:
         self.__db = Db()
         self.__current_user = None
         self.__key = None
+        self.__crypto = Crypto_bro()
 
         self.root = tk.Tk()
         self.root.title('MeSwap')
@@ -68,7 +70,7 @@ class MeSwap:
         self.surname_entry = ttk.Entry(frame)
         email_label = ttk.Label(frame, text="Email:")
         self.email_entry = ttk.Entry(frame)
-        register_button = ttk.Button(frame, text="Register:", command=self.register)
+        register_button = ttk.Button(frame, text="Register", command=self.register)
 
         phone_label.grid(row=0, column=0, pady=10)
         self.phone_entry_2.grid(row=0, column=1, pady=10)
@@ -100,11 +102,18 @@ class MeSwap:
     def add_info_frame(self):
         info_frame = ttk.Frame(self.root, padding=10)
         self.pages["info"] = info_frame
+
+        # Decrypt the data received
         info = self.__db.find_user(self.__current_user)
-        phone_label = ttk.Label(info_frame, text=f"Phone Number: {info[0]}")
-        name_label = ttk.Label(info_frame, text=f"Name: {info[2]}")
-        surname_label = ttk.Label(info_frame, text=f"Surname: {info[3]}")
-        email_label = ttk.Label(info_frame, text=f"Email: {info[4]}")
+        phone_number = info[0]
+        name = self.__crypto.decrypt_my_data(self.__key, info[7], info[2])
+        surname = self.__crypto.decrypt_my_data(self.__key, info[8], info[3])
+        email = self.__crypto.decrypt_my_data(self.__key, info[9], info[4])
+
+        phone_label = ttk.Label(info_frame, text=f"Phone Number: {phone_number}")
+        name_label = ttk.Label(info_frame, text=f"Name: {name}")
+        surname_label = ttk.Label(info_frame, text=f"Surname: {surname}")
+        email_label = ttk.Label(info_frame, text=f"Email: {email}")
         back_button = ttk.Button(info_frame, text="Back", command=lambda: self.show_page("main"))
 
         phone_label.grid(row=0, column=0, pady=10)
@@ -169,8 +178,10 @@ class MeSwap:
     def login(self):
         phone_number = self.phone_entry.get()
         password = self.password_entry.get()
-        if self.__db.validate_user(phone_number, password):
+        key = self.__db.validate_user(phone_number, password)
+        if key is not False:
             self.__current_user = phone_number
+            self.__key = key
             self.show_page("main")
 
     def register(self):
@@ -181,7 +192,7 @@ class MeSwap:
         surname = self.surname_entry.get()
         email = self.email_entry.get()
         if password == password2:
-            self.__db.add_user(phone_number, password, name, surname, email)
+            self.__key = self.__db.add_user(phone_number, password, name, surname, email)
             self.__current_user = phone_number
             self.show_page("main")
         else:

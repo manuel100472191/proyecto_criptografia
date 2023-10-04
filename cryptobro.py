@@ -4,6 +4,7 @@ import cryptography.exceptions
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 import base64
 
 
@@ -58,7 +59,8 @@ class Crypto_bro:
         return base64.encodebytes(salt).decode("utf8"), base64.encodebytes(key).decode("utf8")
 
     @staticmethod
-    def derive_key_from_password(salt, password):
+    def derive_key_from_password(salt: str, password: str):
+        """ Derives a key given a salt and a password"""
         salt = base64.decodebytes(bytes(salt, encoding='utf8'))
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
@@ -68,6 +70,28 @@ class Crypto_bro:
         )
         key = kdf.derive(bytes(password, encoding="utf8"))
         return base64.encodebytes(key).decode("utf8")
+
+    @staticmethod
+    def encrypt_my_data(key: str, data: str):
+        """ Encrypts data given a key and returns the nonce"""
+        key = base64.decodebytes(bytes(key, encoding="utf8"))
+        data = bytes(data, encoding="utf8")
+        chacha = ChaCha20Poly1305(key)
+        nonce = os.urandom(12)
+        ct = chacha.encrypt(nonce, data, None)
+
+        return base64.encodebytes(nonce).decode("utf8"), base64.encodebytes(ct).decode("utf8")
+
+    @staticmethod
+    def decrypt_my_data(key, nonce, data):
+        """ Decrypts and authenticates data given key and a nonce"""
+        key = base64.decodebytes(bytes(key, encoding="utf8"))
+        data = base64.decodebytes(bytes(data, encoding="utf8"))
+        nonce = base64.decodebytes(bytes(nonce, encoding="utf8"))
+
+        chacha = ChaCha20Poly1305(key)
+        result = chacha.decrypt(nonce, data, None)
+        return result.decode("utf8")
 
 
 
