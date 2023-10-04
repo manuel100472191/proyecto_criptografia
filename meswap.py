@@ -20,6 +20,19 @@ class MeSwap:
         style = ttk.Style()
         style.theme_use("clam")
 
+        # self.notebook = ttk.Notebook(self.root)
+        # self.notebook.pack(fill='both', expand=True)
+        # self.login_frame = ttk.Frame(self.notebook, padding=10)
+        # self.register_frame = ttk.Frame(self.notebook, padding=10)
+        # self.main_frame = ttk.Frame(self.notebook, padding=10)
+        # self.notebook.add(self.login_frame)
+        # self.notebook.add(self.register_frame)
+        # self.notebook.add(self.main_frame)
+        # self.add_login_frame(self.login_frame)
+        # self.add_register_frame(self.register_frame)
+        # self.add_main_frame(self.main_frame)
+        #
+        # self.notebook.select(0)
         self.pages = {}
 
         login_frame = ttk.Frame(self.root, padding=10)
@@ -137,10 +150,12 @@ class MeSwap:
             self.show_page("sent")
 
     def add_messages_received_frame(self):
-        try:
+        if self.pages.get("received") is not None:
             frame = self.pages["received"]
-            self.show_page("received")
-        except KeyError:
+            frame.destroy()
+            del self.pages["received"]
+            self.add_messages_received_frame()
+        else:
             info = self.__db.find_messages_received(self.__current_user)
             received_frame = ttk.Frame(self.root, padding=10)
             self.pages["received"] = received_frame
