@@ -13,7 +13,7 @@ class MeSwap:
 
         self.root = tk.Tk()
         self.root.title('MeSwap')
-        self.root.resizable(width=False, height=True)
+        self.root.resizable(width=False, height=False)
 
         style = ttk.Style()
         style.theme_use("clam")

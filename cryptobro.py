@@ -46,6 +46,7 @@ class Crypto_bro:
 
     @staticmethod
     def first_derive_key_from_password(password: str):
+        """ Generates the key with the password for the first time"""
         salt = os.urandom(16)
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
