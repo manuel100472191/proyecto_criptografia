@@ -2,17 +2,21 @@ import sqlite3
 import tkinter as tk
 from tkinter import ttk
 from base_de_datos import Db
-from cryptobro import Crypto_bro
+from cryptobro import CryptoBro
 
 
 class MeSwap:
     def __init__(self):
-        # Create the frame where the interface is going to be
+        # We create a connection to the database
         self.__db = Db()
+        # The variable current user saves the phone number of the user that has log in
         self.__current_user = None
+        # The variable key saves the key of the user for the current session
         self.__key = None
-        self.__crypto = Crypto_bro()
+        # We create an instance of the class cryptobro that has the interface for the criptographic functions
+        self.__crypto = CryptoBro()
 
+        # We create the interface root from the class tkinter and give it some properties
         self.root = tk.Tk()
         self.root.title('MeSwap')
         self.root.resizable(width=False, height=False)
@@ -20,26 +24,33 @@ class MeSwap:
         style = ttk.Style()
         style.theme_use("clam")
 
+        # We create a dictionery that will store the different pages of the app
         self.pages = {}
 
+        # Creating the log-in frame
         login_frame = ttk.Frame(self.root, padding=10)
         self.pages["login"] = login_frame
         self.add_login_frame(login_frame)
 
+        # Creating the register frame
         register_frame = ttk.Frame(self.root, padding=10)
         self.pages["register"] = register_frame
         self.add_register_frame(register_frame)
 
+        # Creating the main frame
         main_frame = ttk.Frame(self.root, padding=10)
         self.pages["main"] = main_frame
         self.add_main_frame(main_frame)
 
+        # Creating the send message frame
         send_frame = ttk.Frame(self.root, padding=10)
         self.pages["send"] = send_frame
         self.add_send_message_frame(send_frame)
 
+        # We start with the frame log-in
         self.show_page("login")
 
+        # We start he main loop for the app
         self.root.mainloop()
 
     def add_login_frame(self, frame):
@@ -59,6 +70,7 @@ class MeSwap:
         register_button.grid(row=3, column=0, columnspan=2, pady=10)
 
     def add_register_frame(self, frame):
+        # We create the different fields for the register
         phone_label = ttk.Label(frame, text="Phone Number:")
         self.phone_entry_2 = ttk.Entry(frame)
         password_label = ttk.Label(frame, text="Password:")

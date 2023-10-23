@@ -1,5 +1,5 @@
 import sqlite3
-from cryptobro import Crypto_bro
+from cryptobro import CryptoBro
 
 
 class Db:
@@ -9,7 +9,7 @@ class Db:
         self.connection = sqlite3.connect(self.db_name)
         self.cursor = self.connection.cursor()
         self.cursor.execute("PRAGMA foreign_keys = 1")
-        self.crypto = Crypto_bro()
+        self.crypto = CryptoBro()
 
     def reset_db(self):
         """ Resets the database to a initial state with some users and messages"""

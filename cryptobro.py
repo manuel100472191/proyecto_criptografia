@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 import base64
 
 
-class Crypto_bro:
+class CryptoBro:
     @staticmethod
     def create_password(password: str) -> (str, str):
         """ Generates the password_token that is going to be stored in the database """
