@@ -9,6 +9,7 @@ import base64
 
 
 class CryptoBro:
+    ####################### SCRYPT #######################
     @staticmethod
     def create_password(password: str) -> (str, str):
         """ Generates the password_token that is going to be stored in the database """
@@ -45,6 +46,7 @@ class CryptoBro:
             return False
         return True
 
+    ####################### PBKDF2 #######################
     @staticmethod
     def first_derive_key_from_password(password: str):
         """ Generates the key with the password for the first time"""
@@ -71,6 +73,7 @@ class CryptoBro:
         key = kdf.derive(bytes(password, encoding="utf8"))
         return base64.encodebytes(key).decode("utf8")
 
+    ####################### CHACHA20POLY #######################
     @staticmethod
     def encrypt_my_data(key: str, data: str):
         """ Encrypts data given a key and returns the nonce"""
