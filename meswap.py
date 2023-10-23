@@ -116,13 +116,15 @@ class MeSwap:
         info_frame = ttk.Frame(self.root, padding=10)
         self.pages["info"] = info_frame
 
-        # Decrypt the data received
+        # Decrypt the data received with the key of the current session
         info = self.__db.find_user(self.__current_user)
         phone_number = info[0]
+        # We use the key, the nonce that is stored in the database and the info for the decryption
         name = self.__crypto.decrypt_my_data(self.__key, info[7], info[2])
         surname = self.__crypto.decrypt_my_data(self.__key, info[8], info[3])
         email = self.__crypto.decrypt_my_data(self.__key, info[9], info[4])
 
+        # After the decryption of the data we can show it in the frame
         phone_label = ttk.Label(info_frame, text=f"Phone Number: {phone_number}")
         name_label = ttk.Label(info_frame, text=f"Name: {name}")
         surname_label = ttk.Label(info_frame, text=f"Surname: {surname}")
@@ -137,10 +139,14 @@ class MeSwap:
         self.show_page("info")
 
     def add_messages_sent_frame(self):
-        try:
+        # First check if the page already set so if it does exist it can be updated with new messages
+        if self.pages.get("sent") is not None:
             frame = self.pages["sent"]
-            self.show_page("sent")
-        except KeyError:
+            frame.destroy()
+            del self.pages["sent"]
+            self.add_messages_sent_frame()
+        else:
+            # If the page does not exist we find the messages sent and show them on the screen
             info = self.__db.find_messages_sent(self.__current_user)
             sent_frame = ttk.Frame(self.root, padding=10)
             self.pages["sent"] = sent_frame
@@ -150,22 +156,27 @@ class MeSwap:
             self.show_page("sent")
 
     def add_messages_received_frame(self):
+        # First check if the page already set so if it does exist it can be updated with new messages
         if self.pages.get("received") is not None:
             frame = self.pages["received"]
             frame.destroy()
             del self.pages["received"]
             self.add_messages_received_frame()
         else:
+            # If the page does not exist we find the messages received and show them on the screen
             info = self.__db.find_messages_received(self.__current_user)
             received_frame = ttk.Frame(self.root, padding=10)
             self.pages["received"] = received_frame
             for row in info:
                 ttk.Label(received_frame, text=f"Sent by {row[1]} at {row[4]}:\n{row[3]}").pack(pady=10)
+            # We add one button for going back and one for updating the messages received
             ttk.Button(received_frame, text="Back", command=lambda: self.show_page("main")).pack()
             ttk.Button(received_frame, text="Update", command=self.add_messages_received_frame).pack()
             self.show_page("received")
 
     def add_send_message_frame(self, frame):
+        """ Creates the send message frame where with two entries one for the receiver phone number and the otehr
+        for the content of the message"""
         ttk.Label(frame, text="To:").grid(row=0, column=0, pady=0)
         self.receiver_entry = ttk.Entry(frame)
         self.content = ttk.Entry(frame)
@@ -174,6 +185,7 @@ class MeSwap:
         ttk.Button(frame, text="Send", command=self.send_message).grid(row=2, column=0, columnspan=2, pady=10)
 
     def send_message(self):
+        """ Creates a messages from the inpunts of the send message frame and adds them to the database"""
         receiver = self.receiver_entry.get()
         content = self.content.get()
         try:
@@ -185,32 +197,39 @@ class MeSwap:
             self.content.delete(0, tk.END)
 
     def show_page(self, page_name):
+        """ Changes the current view of the frame to the one in the input"""
         for page in self.pages.values():
             page.grid_forget()
 
         self.pages[page_name].grid(row=0, column=0)
 
     def login(self):
+        """ Checks that the info that the credentials of the log in frame are correct"""
         phone_number = self.phone_entry.get()
         password = self.password_entry.get()
         key = self.__db.validate_user(phone_number, password)
+        # If the credentials are right we save the key for the current session and go the main frame
         if key is not False:
             self.__current_user = phone_number
             self.__key = key
             self.show_page("main")
 
     def register(self):
+        """ We create a new user in the database with the inputs in the register frame"""
         phone_number = self.phone_entry_2.get()
         password = self.password_entry_2.get()
         password2 = self.repeat_password_entry.get()
         name = self.name_entry.get()
         surname = self.surname_entry.get()
         email = self.email_entry.get()
+        # If the two passwords are the same we create the user and set the current user
+        # and the key to the current user and key
         if password == password2:
             self.__key = self.__db.add_user(phone_number, password, name, surname, email)
             self.__current_user = phone_number
             self.show_page("main")
         else:
+            # If the inputs are wrong we reset the entries
             self.phone_entry_2.delete(0, tk.END)
             self.password_entry_2.delete(0, tk.END)
             self.repeat_password_entry.delete(0, tk.END)

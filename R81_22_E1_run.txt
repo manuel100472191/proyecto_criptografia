@@ -1,0 +1,23 @@
+Instrucciones para ejecutar el programa:
+1. El programa debe ejecutarse en python3
+2. Tener las libreria que se usan. En caso de que no ejecutar el siguiente comando. El terminal tiene que estar abierto
+   en la carpeta del proyecto
+pip install -r requirements.txt
+3. Ejecutar el archivo main.py en 2 terminale distintos
+4. Crear dos usuarios con dos numeros de telefonon distintos
+5. Enviar mensajes entre ellos y ver como se actualiza la pestaña de mensajes recibidos
+
+Para ver como se guardan los datos en la base de datos (Esto no seria visible al usuario final)
+1. Ejecutar una consola de python en la carpeta
+2. Ejecutar las siguientes lineas de codigo:
+from base_de_datos import Db
+db = Db()
+db.view_data()
+3. Se imprimira en pantalla todos los datos guardados en la base de datos por defecto hay creados 9 usuarios que son de
+   prueba
+
+
+
+Notas:
+En nuestro proyecto se permite que hayan varia terminales abiertos ejecutando el mismo progama. Y estos terminales
+pueden interactuar entre si a traves de enviarse mensajes.
