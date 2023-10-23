@@ -20,19 +20,6 @@ class MeSwap:
         style = ttk.Style()
         style.theme_use("clam")
 
-        # self.notebook = ttk.Notebook(self.root)
-        # self.notebook.pack(fill='both', expand=True)
-        # self.login_frame = ttk.Frame(self.notebook, padding=10)
-        # self.register_frame = ttk.Frame(self.notebook, padding=10)
-        # self.main_frame = ttk.Frame(self.notebook, padding=10)
-        # self.notebook.add(self.login_frame)
-        # self.notebook.add(self.register_frame)
-        # self.notebook.add(self.main_frame)
-        # self.add_login_frame(self.login_frame)
-        # self.add_register_frame(self.register_frame)
-        # self.add_main_frame(self.main_frame)
-        #
-        # self.notebook.select(0)
         self.pages = {}
 
         login_frame = ttk.Frame(self.root, padding=10)
@@ -56,6 +43,7 @@ class MeSwap:
         self.root.mainloop()
 
     def add_login_frame(self, frame):
+        # We create the login frame with the fields
         phone_label = ttk.Label(frame, text="Phone Number:")
         self.phone_entry = ttk.Entry(frame)
         password_label = ttk.Label(frame, text="Password:")

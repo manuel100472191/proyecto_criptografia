@@ -103,6 +103,12 @@ class Db:
         self.add_user('222222222', 'password', 'user2', 'user2', '2@hola.es')
         self.add_user('333333333', 'password', 'user3', 'user3', '3@hola.es')
         self.add_user('444444444', 'password', 'user4', 'user4', '4@hola.es')
+        self.add_user('555555555', 'password', 'user5', 'user5', '5@hola.es')
+        self.add_user('666666666', 'password', 'user6', 'user6', '6@hola.es')
+        self.add_user('777777777', 'password', 'user7', 'user7', '7@hola.es')
+        self.add_user('888888888', 'password', 'user8', 'user8', '8@hola.es')
+        self.add_user('999999999', 'password', 'user9', 'user9', '9@hola.es')
+
 
     def populate_messages(self):
         self.add_message('111111111', '222222222', 'Hola')
