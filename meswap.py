@@ -54,6 +54,7 @@ class MeSwap:
         self.root.mainloop()
 
     def add_login_frame(self, frame):
+        """ Creates the login frame interface """
         # We create the login frame with the fields
         phone_label = ttk.Label(frame, text="Phone Number:")
         self.phone_entry = ttk.Entry(frame)
@@ -70,6 +71,7 @@ class MeSwap:
         register_button.grid(row=3, column=0, columnspan=2, pady=10)
 
     def add_register_frame(self, frame):
+        """ Creates the register frame interface """
         # We create the different fields for the register
         phone_label = ttk.Label(frame, text="Phone Number:")
         self.phone_entry_2 = ttk.Entry(frame)
@@ -100,6 +102,7 @@ class MeSwap:
         register_button.grid(row=6, column=0, columnspan=2, pady=10)
 
     def add_main_frame(self, frame):
+        """ Creating the main frame with four buttons one for each action """
         self.info_button = ttk.Button(frame, text="My info", command=lambda: self.add_info_frame())
         self.rec_mess_button = ttk.Button(frame, text="Show messages received",
                                           command=lambda: self.add_messages_received_frame())
@@ -113,6 +116,7 @@ class MeSwap:
         self.send_mess_button.grid(row=3, column=0, padx=30, pady=10)
 
     def add_info_frame(self):
+        """ Creates my info frame interface"""
         info_frame = ttk.Frame(self.root, padding=10)
         self.pages["info"] = info_frame
 
@@ -139,6 +143,7 @@ class MeSwap:
         self.show_page("info")
 
     def add_messages_sent_frame(self):
+        """ Creates the messages frame interface """
         # First check if the page already set so if it does exist it can be updated with new messages
         if self.pages.get("sent") is not None:
             frame = self.pages["sent"]
@@ -156,6 +161,7 @@ class MeSwap:
             self.show_page("sent")
 
     def add_messages_received_frame(self):
+        """ Creates the message received frame interface"""
         # First check if the page already set so if it does exist it can be updated with new messages
         if self.pages.get("received") is not None:
             frame = self.pages["received"]
