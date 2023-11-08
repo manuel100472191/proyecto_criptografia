@@ -7,6 +7,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import padding
 import base64
 
 
@@ -122,6 +123,60 @@ class CryptoBro:
         )
 
         return base64.encodebytes(pem_private).decode("utf8"), base64.encodebytes(pem_public).decode("utf8")
+
+    @staticmethod
+    def generate_encrypted_key(public_key1, public_key2) -> (str, str):
+        """ Function that generates an encrypted key for interchange of messages"""
+        # We generate a 32 bytes key for the simmentric encryption
+        key = os.urandom(32)
+
+        # We encrypt the key with the public key of user 1
+        public_key1 = base64.decodebytes(bytes(public_key1, encoding="utf8"))
+        public_key1 = serialization.load_pem_public_key(public_key1)
+        encrypted_key1 = public_key1.encrypt(
+            key,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+
+        # We encrypt the key with the public key of user 2
+        public_key2 = base64.decodebytes(bytes(public_key2, encoding="utf8"))
+        public_key2 = serialization.load_pem_public_key(public_key2)
+        encrypted_key2 = public_key2.encrypt(
+            key,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        return base64.encodebytes(encrypted_key1).decode("utf8"), base64.encodebytes(encrypted_key2).decode("utf8")
+
+    @staticmethod
+    def decrypt_encrypted_key(private_key: str, encrypted_key: str, password: str):
+        """ Decrypt a key given the private key """
+        private_key = base64.decodebytes(bytes(private_key, encoding="utf8"))
+        password = bytes(password, encoding="utf8")
+        encrypted_key = base64.decodebytes(bytes(encrypted_key, encoding="utf8"))
+
+        private_key = serialization.load_pem_private_key(
+            private_key,
+            password
+        )
+
+        encrypted_key = private_key.decrypt(
+            encrypted_key,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+
+        return encrypted_key
 
 
 
