@@ -20,14 +20,17 @@ class Db:
         password_salt, password_token = self.__crypto.create_password(password)
         # Generates the key_salt and the key for the user to encrypt its data
         key_salt, key = self.__crypto.first_derive_key_from_password(password)
+        # TODO cambiar la generación de la contraseña para que no sea la misma que la de inicio de sesión
+        private_key_encrypted, public_key = self.__crypto.generate_private_key_and_public_key(password)
         # Encrypts the data and generates an once for each field
         name_nonce, name = self.__crypto.encrypt_my_data(key, name)
         surname_nonce, surname = self.__crypto.encrypt_my_data(key, surname)
         email_nonce, email = self.__crypto.encrypt_my_data(key, email)
         # Stores the data into the database
-        self.cursor.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+        self.cursor.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
                             (telephone, password_token, name, surname, email,
-                             password_salt, key_salt, name_nonce, surname_nonce, email_nonce))
+                             password_salt, key_salt, name_nonce, surname_nonce, email_nonce,
+                             private_key_encrypted, public_key))
         self.connection.commit()
         # Return the key for the decryption of the data
         return key
@@ -83,6 +86,7 @@ class Db:
         self.add_message('111111111', '222222222', 'Hola')
         self.add_message('222222222', '333333333', '¿Que tal?')
         self.add_message('444444444', '111111111', 'Buenos dias')
+
     # THIS CODE IS USED TO CREATE THE DATABASE AND TO RESET IT TO AN INITIAL STATE WITH THE FICTIONAL USERS
     # SHOWN IN THE CODE BEFORE
     def reset_db(self):
@@ -105,7 +109,9 @@ class Db:
                             "key_salt CHAR(25),"
                             "name_nonce CHAR(17),"
                             "surname_nonce CHAR(17),"
-                            "email_nonce CHAR(17)"
+                            "email_nonce CHAR(17),"
+                            "private_key_encrypted CHAR(2533),"
+                            "public_key CHAR(612)"
                             ");")
 
         self.cursor.execute(""

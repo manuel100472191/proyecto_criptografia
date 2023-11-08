@@ -5,6 +5,8 @@ from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
 import base64
 
 
@@ -95,6 +97,35 @@ class CryptoBro:
         chacha = ChaCha20Poly1305(key)
         result = chacha.decrypt(nonce, data, None)
         return result.decode("utf8")
+
+    ####################### RSA #######################
+    @staticmethod
+    def generate_private_key_and_public_key(password):
+        password = bytes(password, encoding="utf8")
+        # We generate the private key
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048
+        )
+        # We generate the public key
+        public_key = private_key.public_key()
+        # Serializing the private key and encrypting it
+        pem_private = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.BestAvailableEncryption(password)
+        )
+        # Serializing the public key without encryption
+        pem_public = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+
+        return base64.encodebytes(pem_private).decode("utf8"), base64.encodebytes(pem_public).decode("utf8")
+
+
+
+
 
 
 
