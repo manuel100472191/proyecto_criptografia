@@ -12,7 +12,7 @@ class CryptoBro:
     ####################### SCRYPT #######################
     @staticmethod
     def create_password(password: str) -> (str, str):
-        """ Generates the password_token that is going to be stored in the database """
+        """ Generates the password_token that is going to be stored in the database"""
         salt = os.urandom(16)  # Generates a random salt for the user
         kdf = Scrypt(
             salt=salt,

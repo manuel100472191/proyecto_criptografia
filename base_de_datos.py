@@ -127,8 +127,8 @@ class Db:
     def view_data(self):
         rows = self.cursor.execute("SELECT * from users").fetchall()
         for row in rows:
-            print(f"phone-number: {row[0]}\n----- name: {row[2]}---- surname: {row[3]}----"
-                  f"email: {row[4]}---- password_salt: {row[5]}---- password: \n{row[1]}"
+            print(f"phone-number: {row[0]}\n---- name: {row[2]}---- surname: {row[3]}----"
+                  f" email: {row[4]}---- password_salt: {row[5]}---- password: \n{row[1]}"
                   f"---- key_salt: {row[6]}---- name_nonce: {row[7]}---- surname_nonce: {row[8]}"
                   f"---- email_nonce: {row[9]}")
         rows = self.cursor.execute("SELECT * FROM messages").fetchall()
