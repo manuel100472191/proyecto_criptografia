@@ -14,14 +14,13 @@ class Db:
         # Creates an instance of the class crypto bro
         self.__crypto = CryptoBro()
 
-    def add_user(self, telephone, password, name, surname, email):
+    def add_user(self, telephone, password, name, surname, email, private_key_password):
         """ Adds a user to the database given the correct data"""
         # Generates the salt and the password token for the user
         password_salt, password_token = self.__crypto.create_password(password)
         # Generates the key_salt and the key for the user to encrypt its data
         key_salt, key = self.__crypto.first_derive_key_from_password(password)
-        # TODO cambiar la generación de la contraseña para que no sea la misma que la de inicio de sesión
-        private_key_encrypted, public_key = self.__crypto.generate_private_key_and_public_key(password)
+        private_key_encrypted, public_key = self.__crypto.generate_private_key_and_public_key(private_key_password)
         # Encrypts the data and generates a nonce for each field
         name_nonce, name = self.__crypto.encrypt_my_data(key, name)
         surname_nonce, surname = self.__crypto.encrypt_my_data(key, surname)
@@ -36,41 +35,33 @@ class Db:
         return key
 
     def validate_user(self, telephone, password):
-        # Validates the log-in information of a user
+        """ Validates the log-in information of a user """
         rows = list(self.cursor.execute("SELECT telephone_number, password_token, password_salt, key_salt "
                                         "FROM users WHERE telephone_number = ?;"
                                         , (telephone,)))
         # Verify that the password is the correct one and generates the key for the decryption
-        if self.__crypto.verify_password(password, rows[0][2], rows[0][1]):
+        if len(rows) != 0 or self.__crypto.verify_password(password, rows[0][2], rows[0][1]):
             # If the password is right we return the key for the decryption of the data
             return self.__crypto.derive_key_from_password(rows[0][3], password)
         return False
 
     def find_user(self, telephone):
-        """ Returns all the information from an user given its phone_number"""
+        """ Returns all the information from a user given its phone_number"""
         # Returns all the data stored in the database for the given phone number
         rows = list(self.cursor.execute("SELECT * FROM users WHERE telephone_number = ?;", (telephone,)))
         return rows[0]
 
-    def find_messages_sent(self, telephone):
-        """ Find the messages that a phone a number has sent"""
-        rows = list(self.cursor.execute("SELECT * FROM messages WHERE sender = ?", (telephone,)))
-        return rows
-
-    def find_messages_received(self, telephone):
-        """ Finds the messages that a phone number has received """
-        rows = list(self.cursor.execute("SELECT * FROM messages WHERE receiver = ?", (telephone,)))
-        return rows
-
-    def add_message(self, sender, receiver, encrypted_content, nonce):
+    def add_message(self, sender, conversation_id, encrypted_content, nonce):
         """ Adds a message to the database """
-        self.cursor.execute("INSERT INTO messages(sender, receiver, content) VALUES (?, ?, ?, ?);",
-                            (sender, receiver, encrypted_content, nonce))
+        self.cursor.execute("INSERT INTO messages(sender, content, nonce, cryptobros_id) VALUES (?, ?, ?, ?);",
+                            (sender, encrypted_content, nonce, conversation_id))
         self.connection.commit()
 
-    # TODO implementar esta función antes de mandar un mensaje para poder desncriptar la clave simetrica
-    #  para encriptar el mensaje
     def check_conversation(self, sender, receiver):
+        """
+        Function that checks if two users have talked before and return the encrypted simmetric key and the
+        conversation id
+        """
         # We check if they hace talked before
         rows1 = list(self.cursor.execute("SELECT * FROM cryptobros WHERE cryptobro1=? AND cryptobro2=?",
                                          (sender, receiver)))
@@ -78,46 +69,89 @@ class Db:
                                          (receiver, sender)))
         if len(rows1) > 0:
             # We return the encrypted_key with senders public_key (case: sender -> cryptobro1)
-            return rows1[0][2]
+            return rows1[0][3], rows1[0][0]
         elif len(rows2) > 0:
             # We return the encrypted_key with senders public_key (case: sender -> cryptobro2)
-            return rows2[0][3]
+            return rows2[0][4], rows2[0][0]
         else:
             # If they have not talked before we add them to the cryptobros database with a random key
             # We save the public key of the sender
             public_key1 = list(self.cursor.execute("SELECT public_key FROM users WHERE telephone_number=?",
                                                    (sender,)))[0][0]
             # We save the public key of the receiver
-            public_key2 = list(self.cursor.execute("SELECT publick_key FROM users WHERE telephone_number=?",
+            public_key2 = list(self.cursor.execute("SELECT public_key FROM users WHERE telephone_number=?",
                                                    (receiver,)))[0][0]
 
             # We generate a key for encrypting for saving it encrypted with their public keys
             key1, key2 = self.__crypto.generate_encrypted_key(public_key1, public_key2)
 
             # We add the sender and the receiver with their respective encrypted keys with their public_key
-            self.cursor.execute("INSERT INTO crytobros(cryptobro1, cryptobro2, key_encrypted1, key_encrypted2) "
+            self.cursor.execute("INSERT INTO cryptobros(cryptobro1, cryptobro2, key_encrypted1, key_encrypted2) "
                                 "VALUES (?, ?, ?, ?)", (sender, receiver, key1, key2))
+            rows = self.cursor.execute("SELECT id FROM cryptobros WHERE cryptobro1=? AND cryptobro2=?",
+                                       (sender, receiver)).fetchall()
             # We return the key of the sender once it is generated
-            return key1
+            return key1, rows[0][0]
+
+    def get_private_key(self, user):
+        """ Returns the encrypted private key of a given user"""
+        return list(self.cursor.execute("SELECT private_key_encrypted FROM users WHERE telephone_number=?",
+                                        (user,)))[0][0]
+
+    def get_conversations(self, user):
+        """ Returns the phone number that the user has talked to """
+        rows = self.cursor.execute(
+            """
+            SELECT cryptobro1 AS user, cryptobro2 AS partner
+            FROM cryptobros
+            WHERE  cryptobro1=?
+            UNION SELECT cryptobro2 AS user, cryptobro1 AS partner
+            FROM cryptobros
+            WHERE  cryptobro2=?;
+        """, (user, user)).fetchall()
+
+        return (row[1] for row in rows)
+
+    def get_conversation_id(self, user1, user2):
+        rows1 = list(self.cursor.execute("SELECT id FROM cryptobros WHERE cryptobro1=? AND cryptobro2=?",
+                                         (user1, user2)))
+        rows2 = list(self.cursor.execute("SELECT id FROM cryptobros WHERE cryptobro1=? AND cryptobro2=?",
+                                         (user2, user1)))
+        if len(rows1) > 0:
+            # We return the encrypted_key with senders public_key (case: sender -> cryptobro1)
+            return rows1[0][0]
+        elif len(rows2) > 0:
+            # We return the encrypted_key with senders public_key (case: sender -> cryptobro2)
+            return rows2[0][0]
+
+    def get_messages(self, conversation_id):
+        """ Gets the messages given a conversation id"""
+        rows = self.cursor.execute("SELECT * FROM messages WHERE cryptobros_id=?",
+                                   (conversation_id,)).fetchall()
+        return rows
 
     # THIS CODE CREATES FICTIONAL USERS THAT DO NOT REPRESENT REAL USERS SO THE CREDENTIALS DO NOT BELONG TO ANYONE
     # THEY ARE IN THE CODE ONLY FOR TESTING PURPOSES
 
     def populate_users(self):
-        self.add_user('111111111', 'password', 'user1', 'user1', '1@hola.es')
-        self.add_user('222222222', 'password', 'user2', 'user2', '2@hola.es')
-        self.add_user('333333333', 'password', 'user3', 'user3', '3@hola.es')
-        self.add_user('444444444', 'password', 'user4', 'user4', '4@hola.es')
-        self.add_user('555555555', 'password', 'user5', 'user5', '5@hola.es')
-        self.add_user('666666666', 'password', 'user6', 'user6', '6@hola.es')
-        self.add_user('777777777', 'password', 'user7', 'user7', '7@hola.es')
-        self.add_user('888888888', 'password', 'user8', 'user8', '8@hola.es')
-        self.add_user('999999999', 'password', 'user9', 'user9', '9@hola.es')
-
-    def populate_messages(self):
-        self.add_message('111111111', '222222222', 'Hola')
-        self.add_message('222222222', '333333333', '¿Que tal?')
-        self.add_message('444444444', '111111111', 'Buenos dias')
+        self.add_user('111111111', 'password', 'user1',
+                      'user1', '1@hola.es', 'password')
+        self.add_user('222222222', 'password', 'user2',
+                      'user2', '2@hola.es', 'password')
+        self.add_user('333333333', 'password', 'user3',
+                      'user3', '3@hola.es', 'password')
+        self.add_user('444444444', 'password', 'user4',
+                      'user4', '4@hola.es', 'password')
+        self.add_user('555555555', 'password', 'user5',
+                      'user5', '5@hola.es', 'password')
+        self.add_user('666666666', 'password', 'user6',
+                      'user6', '6@hola.es', 'password')
+        self.add_user('777777777', 'password', 'user7',
+                      'user7', '7@hola.es', 'password')
+        self.add_user('888888888', 'password', 'user8',
+                      'user8', '8@hola.es', 'password')
+        self.add_user('999999999', 'password', 'user9',
+                      'user9', '9@hola.es', 'password')
 
     # THIS CODE IS USED TO CREATE THE DATABASE AND TO RESET IT TO AN INITIAL STATE WITH THE FICTIONAL USERS
     # SHOWN IN THE CODE BEFORE
@@ -126,7 +160,6 @@ class Db:
         self.delete_db()
         self.create_db()
         self.populate_users()
-        self.populate_messages()
 
     def create_db(self):
         """ Creates the tables of the database: users and messages"""
@@ -145,34 +178,36 @@ class Db:
                             "private_key_encrypted CHAR(2533),"
                             "public_key CHAR(612)"
                             ");")
-        # TODO acabar la parte de encriptar el mensaje cuando ya abramos obtenido la clave simetrica (nonce?)
+
+        self.cursor.execute(""
+                            "CREATE TABLE cryptobros ("
+                            "id INTEGER PRIMARY KEY,"
+                            "cryptobro1 CHAR(9) NOT NULL,"
+                            "cryptobro2 CHAR(9) NOT NULL,"
+                            "key_encrypted1 CHAR(349),"
+                            "key_encrypted2 CHAR(349),"
+                            "UNIQUE (cryptobro1, cryptobro2),"
+                            "FOREIGN KEY(cryptobro1) REFERENCES users(telephone_number),"
+                            "FOREIGN KEY(cryptobro2) REFERENCES users(telephone_number)"
+                            ");")
+
         self.cursor.execute(""
                             "CREATE TABLE messages ("
                             "id INTEGER PRIMARY KEY,"
                             "sender CHAR(9) NOT NULL,"
-                            "receiver CHAR(9) NOT NULL,"
                             "content VARCHAR2(512) NOT NULL,"
+                            "nonce CHAR(17) NOT NULL,"
                             "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,"
-                            "FOREIGN KEY(sender) REFERENCES users(telephone_number),"
-                            "FOREIGN KEY(receiver) REFERENCES users(telephone_number)"
-                            ");")
-        # TODO acabar la tabla con las longitudes de las claves simetricas encriptadas con las claves públicas
-        self.cursor.execute(""
-                            "CREATE TABLE cryptobros ("
-                            "cryptobro1 CHAR(9) NOT NULL,"
-                            "cryptobro2 CHAR(9) NOT NULL,"
-                            "key_encyrpted1 CHAR,"
-                            "key_ecnrypted2 CHAR,"
-                            "PRIMARY KEY (cryptobro1, cryptobro2),"
-                            "FOREIGN KEY(cryptobro1) REFERENCES users(telephone_number),"
-                            "FOREIGN KEY(cryptobro2) REFERENCES users(telephone_number)"
+                            "cryptobros_id INTEGER NOT NULL,"
+                            "FOREIGN KEY(cryptobros_id) REFERENCES cryptobros(id),"
+                            "FOREIGN KEY(sender) REFERENCES users(telephone_number)"
                             ");")
 
     def delete_db(self):
         """ Deletes the tables from the database. Useful for restarting it"""
         self.cursor.execute("DROP TABLE messages;")
-        self.cursor.execute("DROP TABLE users;")
         self.cursor.execute("DROP TABLE cryptobros;")
+        self.cursor.execute("DROP TABLE users;")
 
     def view_data(self):
         rows = self.cursor.execute("SELECT * from users").fetchall()

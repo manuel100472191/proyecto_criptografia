@@ -176,7 +176,7 @@ class CryptoBro:
             )
         )
 
-        return encrypted_key
+        return base64.encodebytes(encrypted_key).decode("utf8")
 
 
 

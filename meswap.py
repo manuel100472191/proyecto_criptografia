@@ -42,6 +42,9 @@ class MeSwap:
         self.pages["main"] = main_frame
         self.add_main_frame(main_frame)
 
+        password_frame = ttk.Frame(self.root, padding=10)
+        self.pages["password"] = password_frame
+
         # Creating the send message frame
         send_frame = ttk.Frame(self.root, padding=10)
         self.pages["send"] = send_frame
@@ -85,6 +88,10 @@ class MeSwap:
         self.surname_entry = ttk.Entry(frame)
         email_label = ttk.Label(frame, text="Email:")
         self.email_entry = ttk.Entry(frame)
+        password_private_key_label = ttk.Label(frame, text="Password for private key:")
+        self.password_private_key_entry = ttk.Entry(frame, show="*")
+        repeat_password_private_key = ttk.Label(frame, text="Repeat Password:")
+        self.repeat_password_private_key_entry = ttk.Entry(frame, show="*")
         register_button = ttk.Button(frame, text="Register", command=self.register)
 
         phone_label.grid(row=0, column=0, pady=10)
@@ -99,21 +106,22 @@ class MeSwap:
         self.surname_entry.grid(row=4, column=1, pady=10)
         email_label.grid(row=5, column=0, pady=10)
         self.email_entry.grid(row=5, column=1, pady=10)
-        register_button.grid(row=6, column=0, columnspan=2, pady=10)
+        password_private_key_label.grid(row=6, column=0, pady=10)
+        self.password_private_key_entry.grid(row=6, column=1, pady=10)
+        repeat_password_private_key.grid(row=7, column=0, pady=10)
+        self.repeat_password_private_key_entry.grid(row=7, column=1, pady=10)
+        register_button.grid(row=8, column=0, columnspan=2, pady=10)
 
     def add_main_frame(self, frame):
         """ Creating the main frame with four buttons one for each action """
         self.info_button = ttk.Button(frame, text="My info", command=lambda: self.add_info_frame())
-        self.rec_mess_button = ttk.Button(frame, text="Show messages received",
-                                          command=lambda: self.add_messages_received_frame())
-        self.sent_mess_button = ttk.Button(frame, text="Show messages sent",
-                                           command=lambda: self.add_messages_sent_frame())
+        self.rec_mess_button = ttk.Button(frame, text="Show conversations",
+                                          command=lambda: self.add_conversations_frame())
         self.send_mess_button = ttk.Button(frame, text="Send messages", command=lambda: self.show_page("send"))
 
         self.info_button.grid(row=0, column=0, padx=30, pady=10)
         self.rec_mess_button.grid(row=1, column=0, padx=30, pady=10)
-        self.sent_mess_button.grid(row=2, column=0, padx=30, pady=10)
-        self.send_mess_button.grid(row=3, column=0, padx=30, pady=10)
+        self.send_mess_button.grid(row=2, column=0, padx=30, pady=10)
 
     def add_info_frame(self):
         """ Creates my info frame interface"""
@@ -142,65 +150,106 @@ class MeSwap:
         back_button.grid(row=4, column=0, pady=10)
         self.show_page("info")
 
-    def add_messages_sent_frame(self):
+    def add_conversations_frame(self):
         """ Creates the messages frame interface """
         # First check if the page already set so if it does exist it can be updated with new messages
-        if self.pages.get("sent") is not None:
-            frame = self.pages["sent"]
+        if self.pages.get("conversation") is not None:
+            frame = self.pages["conversation"]
             frame.destroy()
-            del self.pages["sent"]
-            self.add_messages_sent_frame()
+            del self.pages["conversation"]
+            self.add_conversations_frame()
         else:
             # If the page does not exist we find the messages sent and show them on the screen
-            info = self.__db.find_messages_sent(self.__current_user)
-            sent_frame = ttk.Frame(self.root, padding=10)
-            self.pages["sent"] = sent_frame
-            for row in info:
-                ttk.Label(sent_frame, text=f"Sent to {row[2]} at {row[4]}:\n{row[3]}").pack(pady=10)
-            ttk.Button(sent_frame, text="Back", command=lambda: self.show_page("main")).pack()
-            self.show_page("sent")
+            info = self.__db.get_conversations(self.__current_user)
+            conversation_frame = ttk.Frame(self.root, padding=10)
+            self.pages["conversation"] = conversation_frame
+            for user in info:
+                conversation_id = self.__db.get_conversation_id(self.__current_user, user)
+                print(user, conversation_id)
+                ttk.Button(conversation_frame, text=f"{user}",
+                           command=lambda u=user, cid=conversation_id: self.add_password_frame(cid, u)).pack(pady=10)
+            ttk.Button(conversation_frame, text="Back", command=lambda: self.show_page("main")).pack()
+            self.show_page("conversation")
 
-    def add_messages_received_frame(self):
-        """ Creates the message received frame interface"""
-        # First check if the page already set so if it does exist it can be updated with new messages
-        if self.pages.get("received") is not None:
-            frame = self.pages["received"]
+    def add_password_frame(self, conversation_id, user):
+        print(f"conversation_id = {conversation_id}. user = {user}\n")
+        if self.pages.get("password") is not None:
+            frame = self.pages["password"]
             frame.destroy()
-            del self.pages["received"]
-            self.add_messages_received_frame()
+            del self.pages["password"]
+            self.add_conversations_frame()
+        else:
+            frame = ttk.Frame(self.root, padding=10)
+            self.pages["password"] = frame
+
+            password_label = ttk.Label(frame, text="Password:")
+            self.password_entry_4 = ttk.Entry(frame, show="*")
+
+            password_label.grid(row=0, column=0, pady=10)
+            self.password_entry_4.grid(row=0, column=1, columnspan=2)
+            ttk.Button(frame, text="Go", command=lambda: self.add_messages_frame(
+                conversation_id, self.password_entry_4.get(), user
+            )).grid(row=3, column=0, columnspan=2, pady=10)
+
+            self.show_page("password")
+
+    def add_messages_frame(self, conversation_id, password, user):
+        """ Creates the message from a specific conversation frame interface"""
+        # First check if the page already set so if it does exist it can be updated with new messages
+        if self.pages.get("messages") is not None:
+            frame = self.pages["messages"]
+            frame.destroy()
+            del self.pages["messages"]
+            self.add_messages_frame(conversation_id, password, user)
         else:
             # If the page does not exist we find the messages received and show them on the screen
-            info = self.__db.find_messages_received(self.__current_user)
-            received_frame = ttk.Frame(self.root, padding=10)
-            self.pages["received"] = received_frame
+            info = self.__db.get_messages(conversation_id)
+            frame = ttk.Frame(self.root, padding=10)
+            self.pages["messages"] = frame
+            private_key = self.__db.get_private_key(self.__current_user)
+            encrypted_key = self.__db.check_conversation(self.__current_user, user)[0]
+            key = self.__crypto.decrypt_encrypted_key(private_key, encrypted_key, password)
             for row in info:
-                ttk.Label(received_frame, text=f"Sent by {row[1]} at {row[4]}:\n{row[3]}").pack(pady=10)
+                content = self.__crypto.decrypt_my_data(key, row[3], row[2])
+                ttk.Label(frame, text=f"Sent by {row[1]} at {row[4]}:\n{content}").pack(pady=10)
             # We add one button for going back and one for updating the messages received
-            ttk.Button(received_frame, text="Back", command=lambda: self.show_page("main")).pack()
-            ttk.Button(received_frame, text="Update", command=self.add_messages_received_frame).pack()
-            self.show_page("received")
+            ttk.Button(frame, text="Back", command=lambda: self.add_conversations_frame()).pack()
+            ttk.Button(frame, text="Update",
+                       command=lambda: self.add_messages_frame(conversation_id, password, user)).pack()
+            self.show_page("messages")
 
     def add_send_message_frame(self, frame):
         """ Creates the send message frame where with two entries one for the receiver phone number and the otehr
         for the content of the message"""
         ttk.Label(frame, text="To:").grid(row=0, column=0, pady=0)
         self.receiver_entry = ttk.Entry(frame)
-        self.content = ttk.Entry(frame)
+        self.content = tk.Text(frame, width=40, height=7, bg="white", fg="black", highlightcolor="white")
+        ttk.Label(frame, text="Password:").grid(row=2, column=0, pady=0)
+        self.password_entry_3 = ttk.Entry(frame, show="*")
         self.receiver_entry.grid(row=0, column=1, pady=10)
         self.content.grid(row=1, column=0, columnspan=2, pady=10)
-        ttk.Button(frame, text="Send", command=self.send_message).grid(row=2, column=0, columnspan=2, pady=10)
+        self.password_entry_3.grid(row=2, column=1, columnspan=2, pady=10)
+        ttk.Button(frame, text="Send", command=self.send_message).grid(row=3, column=0, columnspan=2, pady=10)
 
     def send_message(self):
-        """ Creates a messages from the inpunts of the send message frame and adds them to the database"""
+        """ Creates a messages from the inputs of the send message frame and adds them to the database"""
         receiver = self.receiver_entry.get()
-        content = self.content.get()
+        content = self.content.get("1.0", tk.END)
+        password = self.password_entry_3.get()
         try:
-            self.__db.add_message(self.__current_user, receiver, content)
+            # We get the key for encrypting the conversation from the database
+            encrypted_key, conversation_id = self.__db.check_conversation(self.__current_user, receiver)
+            private_key = self.__db.get_private_key(self.__current_user)
+            key = self.__crypto.decrypt_encrypted_key(private_key, encrypted_key, password)
+            nonce, content = self.__crypto.encrypt_my_data(key, content)
+            self.__db.add_message(self.__current_user, conversation_id, content, nonce)
             self.show_page("main")
 
-        except sqlite3.OperationalError:
+        except sqlite3.OperationalError or ValueError as error:
+            print(error)
             self.receiver_entry.delete(0, tk.END)
-            self.content.delete(0, tk.END)
+            self.content.delete("1.0", tk.END)
+            self.password_entry_3.delete(0, tk.END)
 
     def show_page(self, page_name):
         """ Changes the current view of the frame to the one in the input"""
@@ -228,10 +277,12 @@ class MeSwap:
         name = self.name_entry.get()
         surname = self.surname_entry.get()
         email = self.email_entry.get()
+        private_key_pass = self.password_private_key_entry.get()
+        private_key_pass2 = self.repeat_password_private_key_entry.get()
         # If the two passwords are the same we create the user and set the current user
         # and the key to the current user and key
-        if password == password2:
-            self.__key = self.__db.add_user(phone_number, password, name, surname, email)
+        if password == password2 and private_key_pass == private_key_pass2:
+            self.__key = self.__db.add_user(phone_number, password, name, surname, email, private_key_pass)
             self.__current_user = phone_number
             self.show_page("main")
         else:
@@ -242,5 +293,7 @@ class MeSwap:
             self.name_entry.delete(0, tk.END)
             self.surname_entry.delete(0, tk.END)
             self.email_entry.delete(0, tk.END)
+            self.password_private_key_entry.delete(0, tk.END)
+            self.repeat_password_private_key_entry.delete(0, tk.END)
 
 
