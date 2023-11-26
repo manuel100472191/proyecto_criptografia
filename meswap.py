@@ -206,9 +206,8 @@ class MeSwap:
             info = self.__db.get_messages(conversation_id)
             frame = ttk.Frame(self.root, padding=10)
             self.pages["messages"] = frame
-            private_key = self.__db.get_private_key(self.__current_user)
             encrypted_key = self.__db.check_conversation(self.__current_user, user)[0]
-            key = self.__crypto.decrypt_encrypted_key(private_key, encrypted_key, password)
+            key = self.__crypto.decrypt_encrypted_key(self.__current_user, encrypted_key, password)
             for row in info:
                 content = self.__crypto.decrypt_my_data(key, row[3], row[2])
                 ttk.Label(frame, text=f"Sent by {row[1]} at {row[4]}:\n{content}").pack(pady=10)
@@ -239,8 +238,7 @@ class MeSwap:
         try:
             # We get the key for encrypting the conversation from the database
             encrypted_key, conversation_id = self.__db.check_conversation(self.__current_user, receiver)
-            private_key = self.__db.get_private_key(self.__current_user)
-            key = self.__crypto.decrypt_encrypted_key(private_key, encrypted_key, password)
+            key = self.__crypto.decrypt_encrypted_key(self.__current_user, encrypted_key, password)
             nonce, content = self.__crypto.encrypt_my_data(key, content)
             self.__db.add_message(self.__current_user, conversation_id, content, nonce)
             self.show_page("main")

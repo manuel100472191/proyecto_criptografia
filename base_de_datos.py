@@ -20,16 +20,17 @@ class Db:
         password_salt, password_token = self.__crypto.create_password(password)
         # Generates the key_salt and the key for the user to encrypt its data
         key_salt, key = self.__crypto.first_derive_key_from_password(password)
-        private_key_encrypted, public_key = self.__crypto.generate_private_key_and_public_key(private_key_password)
+
+        # We generate the private_key and the public_key
+        self.__crypto.generate_private_key_and_public_key(private_key_password, telephone)
         # Encrypts the data and generates a nonce for each field
         name_nonce, name = self.__crypto.encrypt_my_data(key, name)
         surname_nonce, surname = self.__crypto.encrypt_my_data(key, surname)
         email_nonce, email = self.__crypto.encrypt_my_data(key, email)
         # Stores the data into the database
-        self.cursor.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+        self.cursor.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
                             (telephone, password_token, name, surname, email,
-                             password_salt, key_salt, name_nonce, surname_nonce, email_nonce,
-                             private_key_encrypted, public_key))
+                             password_salt, key_salt, name_nonce, surname_nonce, email_nonce))
         self.connection.commit()
         # Return the key for the decryption of the data
         return key
@@ -69,21 +70,18 @@ class Db:
                                          (receiver, sender)))
         if len(rows1) > 0:
             # We return the encrypted_key with senders public_key (case: sender -> cryptobro1)
+            print(rows1[0][3])
             return rows1[0][3], rows1[0][0]
         elif len(rows2) > 0:
+            print(rows2[0][4])
             # We return the encrypted_key with senders public_key (case: sender -> cryptobro2)
             return rows2[0][4], rows2[0][0]
         else:
             # If they have not talked before we add them to the cryptobros database with a random key
             # We save the public key of the sender
-            public_key1 = list(self.cursor.execute("SELECT public_key FROM users WHERE telephone_number=?",
-                                                   (sender,)))[0][0]
-            # We save the public key of the receiver
-            public_key2 = list(self.cursor.execute("SELECT public_key FROM users WHERE telephone_number=?",
-                                                   (receiver,)))[0][0]
-
+            self.__crypto.verify_public_key(receiver)
             # We generate a key for encrypting for saving it encrypted with their public keys
-            key1, key2 = self.__crypto.generate_encrypted_key(public_key1, public_key2)
+            key1, key2 = self.__crypto.generate_encrypted_key(sender, receiver)
 
             # We add the sender and the receiver with their respective encrypted keys with their public_key
             self.cursor.execute("INSERT INTO cryptobros(cryptobro1, cryptobro2, key_encrypted1, key_encrypted2) "
@@ -92,11 +90,6 @@ class Db:
                                        (sender, receiver)).fetchall()
             # We return the key of the sender once it is generated
             return key1, rows[0][0]
-
-    def get_private_key(self, user):
-        """ Returns the encrypted private key of a given user"""
-        return list(self.cursor.execute("SELECT private_key_encrypted FROM users WHERE telephone_number=?",
-                                        (user,)))[0][0]
 
     def get_conversations(self, user):
         """ Returns the phone number that the user has talked to """
@@ -159,7 +152,6 @@ class Db:
         """ Resets the database to initial state with some fictional users and messages"""
         self.delete_db()
         self.create_db()
-        self.populate_users()
 
     def create_db(self):
         """ Creates the tables of the database: users and messages"""
@@ -174,9 +166,7 @@ class Db:
                             "key_salt CHAR(25),"
                             "name_nonce CHAR(17),"
                             "surname_nonce CHAR(17),"
-                            "email_nonce CHAR(17),"
-                            "private_key_encrypted CHAR(2533),"
-                            "public_key CHAR(612)"
+                            "email_nonce CHAR(17)"
                             ");")
 
         self.cursor.execute(""
@@ -195,7 +185,7 @@ class Db:
                             "CREATE TABLE messages ("
                             "id INTEGER PRIMARY KEY,"
                             "sender CHAR(9) NOT NULL,"
-                            "content VARCHAR2(512) NOT NULL,"
+                            "content VARCHAR2(2056) NOT NULL,"
                             "nonce CHAR(17) NOT NULL,"
                             "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,"
                             "cryptobros_id INTEGER NOT NULL,"
